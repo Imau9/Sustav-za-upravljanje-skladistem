@@ -1,6 +1,180 @@
 # Sustav-za-upravljanje-skladistem
 projekt baze podataka 2
+## Ivan Maurović
 
+## ER dijagram
+
+<img src="https://cdn.discordapp.com/attachments/1190245422741061764/1196412358332010557/ERD_baze_2.png"/>
+
+**EER dijagram**
+
+<img src="https://cdn.discordapp.com/attachments/1164449330988580864/1196141423733510196/EER_diagram_-_skladiste.png"/>
+
+**Opis dijagrama**
+
+Skup entiteta **firma** povezan je s skupom entiteta **adresa** više naprema jedan, jer možemo imati da na jednoj **adresi** bude više **firma**, dok svaka **firma** može biti stacionirat na samo jednoj **adresi**.
+
+Skup entiteta **adresa** povezan je s skupom entiteta **država** više naprema jedan, jer možemo imati da u jednoj **državi** se nalazimo na više **adresa**, dok **adresa** može biti samo u jednoj **državi**.
+
+Skup entiteta **račun** povezan je s skupom entiteta **firma** više naprema jedan, jer **firma**  može izdati  više **računa**, dok **račun** može biti izdan samo u jednoj **firmi**.
+
+Skup entiteta **račun** povezan je s skupom entiteta **zaposlenik** više naprema jedan, jer možemo imati da  **zaposlenik** izdaje više **računa**, dok jedan **račun** može biti izdati samo od jednog **zaposlenika**.
+
+Skup entiteta **zaposlenik** povezan je s skupom entiteta **skladište** više naprema jedan, jer možemo imati da u jednom **skladištu** radi više **zaposlenika**, dok **zaposlenik** može raditi samo u jednom **skladištu**.
+
+Skup entiteta **zaposlenik** povezan je s skupom entiteta **vrsta_posla** više naprema jedan, jer jednu **vrsta_posla** može raditi više **zaposlenika**, dok **zaposlenik** može raditi najviše jednu **vrstu_posla**.
+
+Skup entiteta **izdatnica** povezan je s skupom entiteta **zaposlenik** više naprema jedan, jer možemo imati da jedan **zaposlenik** izdaje više **izdatnica**, dok **izdatnica** može biti izdana od samo jednog **zaposlnika**.
+
+Skup entiteta **izdatnica** povezan je s skupom entiteta **kupac** više naprema jedan, jer možemo imati da jedan **kupac** kreira više **izdatnica**, dok **izdatnica** može biti kreirana od samo u jednog **kupca**.
+
+Skup entiteta **kupac** povezan je s skupom entiteta **adresa** više naprema jedan, jer možemo imati da na jednoj **adresi** se nalazi više **kupaca**, dok **kupac** može biti samo prijavljen na jednoj **adresi**.
+
+Skup entiteta **povratno** povezan je s skupom entiteta **izdatnica** više naprema jedan, jer na jednoj **izdatnici** možemo imati više **povrata**, dok **povrat* može biti najviše na jednoj **izdatnici**.
+
+Skup entiteta **povratno** povezan je s skupom entiteta **dobavljac** više naprema jedan, jer možemo imati da jedan **dobavljac** ima više **povrata**, dok **povrat** može biti samo kod jednog **dobavljača**.
+
+Skup entiteta **skladište** povezan je s skupom entiteta **firma** jedan naprema više, jer možemo imati da jedna **firma** posjeduje više **skladišta**, dok **skladište** može biti u posjedu najviše jedne **firme**.
+
+Skup entiteta **skladište** povezan je s skupom entiteta **adresa** više naprema jedan, jer možemo na jednoj **adresi** posjedovati više **skladišta**, dok **skladište** može biti najviše na jednoj **adresi**.
+
+Veza s atributom **artikli_u_skladištu** povezan je s skupom entiteta **skladište** više naprema više, jer **skladište** može sadržati više vrsta **artikala_u_skladištu**, dok **artikl_u_skladištu** može biti u više **skladišta** ne treba biti samo u jednom.
+
+Veza s atributom **artikli_u_skldaištu** povezan je s skupom entiteta **artikl** više naprema više, jer možemo imati jednu vrstu **artikla** u više **artikla_u_skladišta**, dok **artikl_u_skladištu** može biti više **artikla**.
+
+Skup entiteta **artikla** povezan je s skupom entiteta **racun** više naprema jedan, jer možemo imati na jednom **racunu**  više **artikala**, dok **artikl** može biti samo na jednom **racunu** Iz ovog odnosa više na jedan dolazimo do stvaranja nove tablice **stavka_racun**. Iz ovog odnosa možemo izvući količinu pojedinog **artikla** na svakom **racunu**.
+
+Veza s atributom **stavka_izdatnice** povezan je s skupom entiteta **izdatnica** više naprema jedan, jer **izdatnica** može imati više **stavaka_izdatnice**, dok **stavka_izdatnice** može biti najviše na jednoj **izdatnica**.
+
+Veza s atributom **stavka_izdatnice** povezan je s veza s atributom **artikli_u_skladištu** jedan naprema jedan, jer možemo imati jednu vrstu  **artikla_u_skladistu** na jednoj **stavci_izdatnice**, dok **stavka_izdatnice** može sadržati najviše jedan **artikl_u_skladištu**.
+
+
+## Okidaći
+
+**1. Ažuriranje količine artikala u skladištu nakon izdavanja**
+
+Nakon novoga izdavanja dolazi do ažuriranja podataka u tablici artikli_u_skladištu korištenjem UPDATE argumenta te dolazi do oduzima broja koliko je izdano od broja artikala koji su u skladištu.
+
+```mysql
+DROP TRIGGER azuriranje_kolicine_artikla_nakon_izdavanja;
+DELIMITER //
+CREATE TRIGGER azuriranje_kolicine_artikla_nakon_izdavanja
+AFTER INSERT ON stavka_izdatnica
+FOR EACH ROW
+BEGIN
+    UPDATE artikli_u_skladistu
+    SET kolicina = kolicina - NEW.kolicina
+    WHERE ID = NEW.ID_artikli_u_skladistu;
+END //
+DELIMITER ;
+INSERT INTO stavka_izdatnica VALUES (17,5,1,3 );
+SELECT * FROM stavka_izdatnica;
+SELECT * FROM artikli_u_skladistu;
+```
+
+**2. Prilikom postavljanja novih računa postavi datum izdavanja na trenutni datum**
+
+Prilikom unosa novoga računa naredbom INSERT automatski se datum izdavanja računa  postavlja na trenutni datum (NOW()).
+
+```mysql
+DROP TRIGGER dv_racun;
+ DELIMITER //
+CREATE TRIGGER dv_racun
+ BEFORE INSERT ON racun
+ FOR EACH ROW
+BEGIN
+ SET new.datum_izdavanja = NOW();
+END//
+DELIMITER ;
+
+INSERT INTO racun (ID, ID_zaposlenik, datum_izdavanja, ID_firma) VALUES (34, 12, CURRENT_DATE, 1);
+Select * From racun;
+```
+**3. Zabranjuje da količina novoga artikla u skladištu bude manja od 1 te javlja da količina mora biti 1 ili vise**
+
+Kada želimo dodavati novi artikl u skladište naredbom INSERT ako nam količina toga artikla nije 1 ili više dolazi do zabrane unosa tog artikla te nam javlja grešku 'Količina mora biti 1 ili više', a ako je količina 1 ili više onda dozvoljava unos novoga artikla ü skladište.
+
+```mysql
+DROP TRIGGER negativna_kolicina;
+DELIMITER //
+CREATE TRIGGER negativna_kolicina
+BEFORE INSERT ON artikli_u_skladistu
+FOR EACH ROW
+BEGIN
+    IF NEW.kolicina < 1 THEN
+        SIGNAL SQLSTATE '40000'
+        SET MESSAGE_TEXT = 'Količina mora biti 1 ili više';
+    END IF;
+END //
+DELIMITER ;
+
+INSERT INTO artikli_u_skladistu (ID, ID_skladiste, ID_artikl, kolicina) VALUES (21, 1, 1, 0);
+INSERT INTO artikli_u_skladistu (ID, ID_skladiste, ID_artikl, kolicina) VALUES (22, 1, 1, 1);
+Select* from artikli_u_skladistu;
+```
+
+**4. Prije unosa novog računa provjerava se ID zaposlenika ako ID ne postaji izlazi greška 'Zaposlenik ne postoji'**
+
+Kod unosa novoga računa naredbom INSERT dolazi do provjeri ID_zaposlenika  te ako taj ID ne postoji onda nije moguć unos tog računa te izbacuje se greška 'Zaposlenik ne postoji' , a ako zaposlenik postoji novi se račun unosi.
+
+```mysql
+DROP TRIGGER prije_unosa_racuna;
+DELIMITER //
+CREATE TRIGGER prije_unosa_racuna
+BEFORE INSERT ON racun
+FOR EACH ROW
+BEGIN
+    DECLARE zaposlenik_id INT;
+
+    SELECT COUNT(*) INTO zaposlenik_id
+    FROM zaposlenik
+    WHERE ID = NEW.ID_zaposlenik;
+
+    IF zaposlenik_id = 0 THEN
+        SIGNAL SQLSTATE '40000'
+        SET MESSAGE_TEXT = 'Zaposlenik ne postoji';
+    END IF;
+END//
+DELIMITER ;
+
+INSERT INTO racun (ID, ID_zaposlenik, datum_izdavanja, ID_firma) VALUES (NULL, 100, STR_TO_DATE('01.01.2024.', '%d.%m.%Y.'), 1);
+```
+
+**5. Prikaz ukupne cijene računa u dodatnoj koloni ukupna_cijena**
+
+Prilikom unosa novih stavaka računa izračunava se ukupna cijena umnoškom cijene i količine iz tablice artikl te se onda ukupna cijena ažurira u tablici račun. U tablici račun dodan je atribut ukupna_cijena tipa DECIMAL (10,2) pomoću ALTER TABLE račun tako da kada želimo prikazati tablicu račun imamo dodatni stupac u kojemu piše ukupna_cijena.
+
+```mysql
+DROP TRIGGER azuriranje_uk_cijene_racuna;
+DELIMITER //
+CREATE TRIGGER azuriranje_uk_cijene_racuna
+BEFORE INSERT ON stavka_racun
+FOR EACH ROW
+BEGIN
+    DECLARE total DECIMAL(10, 2);
+
+    SELECT SUM(a.cijena * NEW.kolicina)
+    INTO total
+    FROM artikl a
+    WHERE a.ID = NEW.ID_artikl;
+
+    UPDATE racun
+    SET ukupna_cijena = total
+    WHERE ID = NEW.ID_racun;
+END //
+DELIMITER ;
+
+ALTER TABLE racun ADD COLUMN ukupna_cijena DECIMAL(10, 2);
+INSERT INTO racun (ID, ID_zaposlenik, datum_izdavanja, ID_firma)
+VALUES (11, 1, CURRENT_DATE, 1);
+
+INSERT INTO artikl (ID, cijena, naziv, vrsta_artikla)
+VALUES (18, 299.99, 'Pisaći stol', 'Namještaj');
+
+INSERT INTO stavka_racun (ID, ID_racun, ID_artikl, kolicina)
+VALUES (11, 11, 18, 3);
+SELECT * FROM racun;
+```
 ## Toni Mijić
 ## Tablice
 
